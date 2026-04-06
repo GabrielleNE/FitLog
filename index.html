@@ -233,6 +233,39 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* ── DIVIDER ── */
 .form-divider { display: flex; align-items: center; gap: 0.75rem; color: var(--muted); font-size: 0.65rem; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; }
 .form-divider::before, .form-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── BULK IMPORT SHEET ── */
+.bulk-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.bulk-tab { flex: 1; padding: 0.75rem; text-align: center; font-weight: 800; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); transition: all 0.15s; font-family: 'Syne', sans-serif; }
+.bulk-tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+
+/* Queue items */
+.queue-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.queue-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem; display: flex; align-items: flex-start; gap: 0.75rem; }
+.queue-item.done { border-color: rgba(200,241,53,0.3); background: rgba(200,241,53,0.04); }
+.queue-item.error { border-color: rgba(255,68,68,0.3); background: rgba(255,68,68,0.04); }
+.queue-item.processing { border-color: rgba(179,136,255,0.4); background: rgba(179,136,255,0.06); animation: aiPulse 1.2s ease-in-out infinite; }
+.queue-status { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+.queue-info { flex: 1; min-width: 0; }
+.queue-url { font-size: 0.68rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-title { font-weight: 800; font-size: 0.85rem; margin-top: 0.2rem; }
+.queue-tags { font-size: 0.65rem; color: var(--purple); margin-top: 0.15rem; font-family: 'JetBrains Mono', monospace; }
+.queue-err { font-size: 0.65rem; color: var(--red); margin-top: 0.15rem; font-family: 'JetBrains Mono', monospace; }
+
+/* Progress bar */
+.progress-bar-wrap { background: var(--surface2); border-radius: 100px; height: 6px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: var(--purple); border-radius: 100px; transition: width 0.4s ease; }
+.progress-label { font-size: 0.68rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-align: center; }
+
+/* IG JSON import */
+.json-drop { border: 2px dashed rgba(179,136,255,0.3); border-radius: 12px; padding: 2rem 1rem; text-align: center; cursor: pointer; color: var(--muted); transition: all 0.2s; }
+.json-drop:active, .json-drop.dragover { border-color: var(--purple); color: var(--purple); }
+.json-drop-icon { font-size: 2.2rem; display: block; margin-bottom: 0.5rem; }
+.json-found { background: rgba(179,136,255,0.08); border: 1px solid rgba(179,136,255,0.25); border-radius: 10px; padding: 0.85rem 1rem; }
+.json-found-title { font-weight: 800; font-size: 0.9rem; color: var(--purple); }
+.json-found-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; }
+.how-to-box { background: var(--surface2); border-radius: 10px; padding: 0.85rem 1rem; font-size: 0.72rem; line-height: 1.7; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.how-to-box strong { color: var(--text); display: block; margin-bottom: 0.3rem; font-family: 'Syne', sans-serif; font-size: 0.78rem; }
 </style>
 </head>
 <body>
@@ -240,8 +273,14 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 <!-- ══════════ LIBRARY SCREEN ══════════ -->
 <div class="screen active" id="screen-library">
   <div class="screen-header">
-    <div class="screen-title">FIT<span>LOG</span></div>
-    <div class="header-badge"><strong id="stat-count">0</strong>videos</div>
+    <div>
+      <div class="screen-title">FIT<span>LOG</span></div>
+      <div style="font-size:0.55rem;color:var(--muted);font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;margin-top:0.1rem">v1.3 · AI + Bulk Import</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem">
+      <button onclick="openBulkSheet()" style="background:rgba(179,136,255,0.12);border:1px solid rgba(179,136,255,0.3);color:var(--purple);padding:0.35rem 0.75rem;border-radius:8px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.7rem;letter-spacing:0.06em;cursor:pointer">✦ Bulk</button>
+      <div class="header-badge"><strong id="stat-count">0</strong>videos</div>
+    </div>
   </div>
   <div class="search-bar">
     <input class="search-input" id="search-input" placeholder="🔍  Search videos..." oninput="renderLibrary()">
@@ -283,6 +322,87 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     <span class="nav-label">Routines</span>
   </button>
 </nav>
+
+<!-- ══════════ BULK IMPORT SHEET ══════════ -->
+<div class="sheet-overlay" id="bulk-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" style="color:var(--purple)">✦ Bulk Import</div>
+      <button class="sheet-close" onclick="closeBulkSheet()">×</button>
+    </div>
+
+    <!-- TABS -->
+    <div class="bulk-tabs">
+      <div class="bulk-tab active" id="btab-paste" onclick="setBulkTab('paste')">Paste Links</div>
+      <div class="bulk-tab" id="btab-json" onclick="setBulkTab('json')">Instagram Export</div>
+    </div>
+
+    <!-- PASTE TAB -->
+    <div id="bulk-paste-tab" class="sheet-body">
+      <div class="form-group">
+        <div class="form-label">Paste Instagram URLs — one per line</div>
+        <textarea class="form-textarea" id="bulk-urls" style="min-height:140px;font-size:0.72rem" placeholder="https://www.instagram.com/p/abc123/
+https://www.instagram.com/reel/def456/
+https://www.instagram.com/p/ghi789/"></textarea>
+      </div>
+
+      <!-- QUEUE (shown after parsing) -->
+      <div id="bulk-queue" style="display:none">
+        <div class="form-label" style="margin-bottom:0.5rem">Queue <span id="queue-count" style="color:var(--purple)"></span></div>
+        <div class="progress-bar-wrap" id="progress-wrap" style="display:none;margin-bottom:0.4rem">
+          <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-label" id="progress-label" style="display:none;margin-bottom:0.6rem"></div>
+        <div class="queue-list" id="queue-list"></div>
+      </div>
+    </div>
+
+    <!-- JSON TAB -->
+    <div id="bulk-json-tab" class="sheet-body" style="display:none">
+      <div class="how-to-box">
+        <strong>How to get your Instagram saved posts:</strong>
+        1. Instagram app → Profile → ☰ Menu<br>
+        2. Your activity → Download your information<br>
+        3. Select "Saved posts" → Request download<br>
+        4. Instagram emails you a ZIP file (can take hours)<br>
+        5. Unzip → find <span style="color:var(--purple)">saved_posts.json</span> inside<br>
+        6. Upload that file here ↓
+      </div>
+
+      <div id="json-drop-zone" class="json-drop" onclick="document.getElementById('json-file-input').click()" ondragover="handleJsonDragOver(event)" ondragleave="handleJsonDragLeave(event)" ondrop="handleJsonDrop(event)">
+        <span class="json-drop-icon">📦</span>
+        Tap to upload <strong style="color:var(--purple)">saved_posts.json</strong><br>
+        <span style="font-size:0.65rem;opacity:0.6">or drag and drop here</span>
+      </div>
+      <input type="file" id="json-file-input" accept=".json,application/json" style="display:none" onchange="handleJsonFile(event)">
+
+      <div id="json-found" class="json-found" style="display:none">
+        <div class="json-found-title">✦ Saved posts found</div>
+        <div class="json-found-sub" id="json-found-sub"></div>
+      </div>
+
+      <!-- Shared queue for JSON tab too -->
+      <div id="bulk-queue-json" style="display:none">
+        <div class="form-label" style="margin-bottom:0.5rem">Queue <span id="queue-count-json" style="color:var(--purple)"></span></div>
+        <div class="progress-bar-wrap" id="progress-wrap-json" style="display:none;margin-bottom:0.4rem">
+          <div class="progress-bar-fill" id="progress-fill-json" style="width:0%"></div>
+        </div>
+        <div class="progress-label" id="progress-label-json" style="display:none;margin-bottom:0.6rem"></div>
+        <div class="queue-list" id="queue-list-json"></div>
+      </div>
+    </div>
+
+    <div class="sheet-footer" id="bulk-footer-paste">
+      <button class="btn-full btn-ghost" onclick="closeBulkSheet()" style="flex:1">Cancel</button>
+      <button class="btn-full" id="bulk-go-btn" onclick="startBulkImport()" style="flex:2;background:var(--purple);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.1em;border:none;border-radius:12px;cursor:pointer">✦ Analyze All</button>
+    </div>
+    <div class="sheet-footer" id="bulk-footer-json" style="display:none">
+      <button class="btn-full btn-ghost" onclick="closeBulkSheet()" style="flex:1">Cancel</button>
+      <button class="btn-full" id="bulk-json-go-btn" onclick="startJsonImport()" style="flex:2;background:var(--purple);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.1em;border:none;border-radius:12px;cursor:pointer;display:none">✦ Import All</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════ ROUTINE DETAIL ══════════ -->
 <div class="routine-detail" id="routine-detail">
@@ -985,6 +1105,280 @@ function showToast(msg, type) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2500);
 }
+
+// ── BULK IMPORT ──
+let bulkTab = 'paste';
+let bulkQueue = [];
+let jsonLinks = [];
+let bulkRunning = false;
+
+function openBulkSheet() {
+  document.getElementById('bulk-sheet').classList.add('open');
+  setBulkTab('paste');
+}
+function closeBulkSheet() {
+  if (bulkRunning) { showToast('Import in progress...'); return; }
+  document.getElementById('bulk-sheet').classList.remove('open');
+  resetBulkSheet();
+}
+
+function setBulkTab(tab) {
+  bulkTab = tab;
+  document.getElementById('btab-paste').classList.toggle('active', tab === 'paste');
+  document.getElementById('btab-json').classList.toggle('active', tab === 'json');
+  document.getElementById('bulk-paste-tab').style.display = tab === 'paste' ? 'flex' : 'none';
+  document.getElementById('bulk-json-tab').style.display = tab === 'json' ? 'flex' : 'none';
+  document.getElementById('bulk-footer-paste').style.display = tab === 'paste' ? 'flex' : 'none';
+  document.getElementById('bulk-footer-json').style.display = tab === 'json' ? 'flex' : 'none';
+}
+
+function resetBulkSheet() {
+  document.getElementById('bulk-urls').value = '';
+  document.getElementById('bulk-queue').style.display = 'none';
+  document.getElementById('bulk-queue-json').style.display = 'none';
+  document.getElementById('json-found').style.display = 'none';
+  document.getElementById('bulk-json-go-btn').style.display = 'none';
+  bulkQueue = [];
+  jsonLinks = [];
+  bulkRunning = false;
+}
+
+// ── PASTE BULK IMPORT ──
+async function startBulkImport() {
+  const raw = document.getElementById('bulk-urls').value.trim();
+  if (!raw) { showToast('Paste some URLs first'); return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l.includes('instagram.com'));
+  if (lines.length === 0) { showToast('No valid Instagram URLs found'); return; }
+
+  // Deduplicate against existing videos
+  const existing = videos.map(v => v.url).filter(Boolean);
+  const toProcess = lines.filter(u => !existing.includes(u));
+  const skipped = lines.length - toProcess.length;
+
+  if (toProcess.length === 0) {
+    showToast('All links already in library!');
+    return;
+  }
+
+  bulkQueue = toProcess.map(url => ({ url, status: 'pending', title: '', tags: '' }));
+  renderQueue('queue-list', 'queue-count', bulkQueue);
+  document.getElementById('bulk-queue').style.display = 'block';
+  document.getElementById('bulk-go-btn').disabled = true;
+  document.getElementById('bulk-go-btn').textContent = 'Processing...';
+
+  if (skipped > 0) showToast(`Skipping ${skipped} already saved`, 'purple');
+
+  await runQueue(bulkQueue, 'queue-list', 'progress-fill', 'progress-wrap', 'progress-label');
+
+  document.getElementById('bulk-go-btn').textContent = '✓ Done!';
+  document.getElementById('bulk-go-btn').disabled = false;
+  bulkRunning = false;
+  renderLibrary();
+}
+
+// ── JSON IMPORT ──
+function handleJsonDragOver(e) { e.preventDefault(); document.getElementById('json-drop-zone').classList.add('dragover'); }
+function handleJsonDragLeave(e) { document.getElementById('json-drop-zone').classList.remove('dragover'); }
+function handleJsonDrop(e) {
+  e.preventDefault();
+  document.getElementById('json-drop-zone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processJsonFile(file);
+}
+function handleJsonFile(e) {
+  const file = e.target.files[0];
+  if (file) processJsonFile(file);
+}
+
+function processJsonFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // Instagram export formats: saved_saved_media or direct array
+      let links = [];
+
+      // Try various Instagram JSON structures
+      if (Array.isArray(data)) {
+        links = extractLinksFromArray(data);
+      } else if (data.saved_saved_media) {
+        links = extractLinksFromArray(data.saved_saved_media);
+      } else if (data.saved_collections) {
+        data.saved_collections.forEach(col => {
+          if (col.media) links.push(...extractLinksFromArray(col.media));
+        });
+      } else {
+        // Try all top-level arrays
+        Object.values(data).forEach(val => {
+          if (Array.isArray(val)) links.push(...extractLinksFromArray(val));
+        });
+      }
+
+      // Deduplicate
+      links = [...new Set(links)].filter(u => u.includes('instagram.com'));
+
+      if (links.length === 0) {
+        showToast('No Instagram links found in file');
+        return;
+      }
+
+      jsonLinks = links;
+      const existing = videos.map(v => v.url).filter(Boolean);
+      const newLinks = links.filter(u => !existing.includes(u));
+
+      document.getElementById('json-found').style.display = 'block';
+      document.getElementById('json-found-sub').textContent =
+        `${links.length} saved posts found · ${newLinks.length} new · ${links.length - newLinks.length} already saved`;
+      document.getElementById('bulk-json-go-btn').style.display = 'block';
+      document.getElementById('bulk-json-go-btn').textContent = `✦ Import ${newLinks.length} Posts`;
+
+    } catch(err) {
+      showToast('Could not read JSON file');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function extractLinksFromArray(arr) {
+  const links = [];
+  arr.forEach(item => {
+    // Various Instagram export structures
+    if (item.href) links.push(item.href);
+    if (item.uri) links.push(item.uri);
+    if (item.string_map_data) {
+      Object.values(item.string_map_data).forEach(v => {
+        if (v.href && v.href.includes('instagram.com')) links.push(v.href);
+        if (v.value && v.value.includes('instagram.com')) links.push(v.value);
+      });
+    }
+    if (item.media_list_data) {
+      item.media_list_data.forEach(m => {
+        if (m.href) links.push(m.href);
+        if (m.uri) links.push(m.uri);
+      });
+    }
+  });
+  return links;
+}
+
+async function startJsonImport() {
+  const existing = videos.map(v => v.url).filter(Boolean);
+  const toProcess = jsonLinks.filter(u => !existing.includes(u));
+  if (toProcess.length === 0) { showToast('All already imported!'); return; }
+
+  const queue = toProcess.map(url => ({ url, status: 'pending', title: '', tags: '' }));
+  renderQueue('queue-list-json', 'queue-count-json', queue);
+  document.getElementById('bulk-queue-json').style.display = 'block';
+  document.getElementById('bulk-json-go-btn').disabled = true;
+  document.getElementById('bulk-json-go-btn').textContent = 'Importing...';
+
+  await runQueue(queue, 'queue-list-json', 'progress-fill-json', 'progress-wrap-json', 'progress-label-json');
+
+  document.getElementById('bulk-json-go-btn').textContent = '✓ Done!';
+  document.getElementById('bulk-json-go-btn').disabled = false;
+  bulkRunning = false;
+  renderLibrary();
+}
+
+// ── SHARED QUEUE RUNNER ──
+async function runQueue(queue, listId, fillId, wrapId, labelId) {
+  bulkRunning = true;
+  document.getElementById(wrapId).style.display = 'block';
+  document.getElementById(labelId).style.display = 'block';
+
+  for (let i = 0; i < queue.length; i++) {
+    const item = queue[i];
+    item.status = 'processing';
+    renderQueue(listId, null, queue);
+
+    const pct = Math.round((i / queue.length) * 100);
+    document.getElementById(fillId).style.width = pct + '%';
+    document.getElementById(labelId).textContent = `Analyzing ${i + 1} of ${queue.length}...`;
+
+    try {
+      const result = await analyzeUrl(item.url);
+      item.status = 'done';
+      item.title = result.title;
+      item.tags = [result.muscle, result.type, result.difficulty].filter(Boolean).join(' · ');
+
+      // Save to library
+      videos.unshift({
+        id: 'v_' + Date.now() + '_' + i,
+        title: result.title,
+        source: 'ig',
+        url: item.url,
+        fileUrl: null,
+        muscle: result.muscle || '',
+        type: result.type || '',
+        diff: result.difficulty || '',
+        duration: result.duration ? String(result.duration) : null,
+        notes: result.notes || '',
+        aiTagged: true,
+        aiSummary: result.summary || '',
+        addedAt: new Date().toISOString()
+      });
+      saveData();
+
+    } catch(err) {
+      item.status = 'error';
+      item.err = 'Analysis failed';
+    }
+
+    renderQueue(listId, null, queue);
+    // Small delay to avoid rate limiting
+    if (i < queue.length - 1) await sleep(800);
+  }
+
+  document.getElementById(fillId).style.width = '100%';
+  const done = queue.filter(q => q.status === 'done').length;
+  document.getElementById(labelId).textContent = `✓ ${done} of ${queue.length} imported!`;
+}
+
+async function analyzeUrl(url) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: `You are a fitness content analyzer. Given an Instagram post URL, infer exercise details and respond ONLY with valid JSON, no markdown, no backticks.
+
+Return exactly:
+{"title":"specific exercise name","muscle":"ONE of: Legs,Glutes,Back,Chest,Shoulders,Arms,Core,Full Body,Cardio,Mobility or empty","type":"ONE of: Strength,HIIT,Yoga,Pilates,Stretching,Cardio,Tutorial,Circuit or empty","difficulty":"ONE of: Beginner,Intermediate,Advanced or empty","duration":null or number,"notes":"1-2 sentences on equipment/cues","summary":"One sentence on training value"}`,
+      messages: [{ role: 'user', content: `Analyze this Instagram fitness post URL: ${url}` }]
+    })
+  });
+  const data = await response.json();
+  const text = data.content?.find(b => b.type === 'text')?.text || '{}';
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+function renderQueue(listId, countId, queue) {
+  if (countId) {
+    document.getElementById(countId).textContent = `(${queue.length} links)`;
+  }
+  const statusIcon = { pending: '⏳', processing: '✦', done: '✓', error: '✕' };
+  document.getElementById(listId).innerHTML = queue.map(item => `
+    <div class="queue-item ${item.status}">
+      <div class="queue-status">${statusIcon[item.status]}</div>
+      <div class="queue-info">
+        <div class="queue-url">${item.url}</div>
+        ${item.title ? `<div class="queue-title">${item.title}</div>` : ''}
+        ${item.tags ? `<div class="queue-tags">${item.tags}</div>` : ''}
+        ${item.err ? `<div class="queue-err">${item.err}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+document.getElementById('bulk-sheet').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeBulkSheet();
+});
 
 document.getElementById('add-sheet').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeAddSheet();
